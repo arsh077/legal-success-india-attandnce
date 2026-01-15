@@ -37,11 +37,13 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       return;
     }
 
-    // Small delay to ensure state updates
-    await new Promise(resolve => setTimeout(resolve, 100));
-
-    // Login successful - call parent handler
-    onLogin(user.role, user.email);
+    // Login successful - call parent handler immediately
+    try {
+      onLogin(user.role, user.email);
+    } catch (error) {
+      setError('Login failed. Please try again.');
+      console.error('Login error:', error);
+    }
   };
 
   const getAuthorizedEmailsForRole = (role: UserRole) => {

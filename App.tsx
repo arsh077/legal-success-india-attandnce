@@ -72,9 +72,14 @@ const App: React.FC = () => {
       authService.login(role);
       localStorage.setItem('user', JSON.stringify(user));
       
-      // Update state
+      // Force update state - this is critical
       setCurrentUser(user);
       setActiveTab('dashboard');
+      
+      // Force re-render
+      window.location.hash = '#dashboard';
+    } else {
+      alert('User not found in employee list. Please contact administrator.');
     }
   };
 
