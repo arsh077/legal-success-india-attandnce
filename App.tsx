@@ -40,7 +40,15 @@ const App: React.FC = () => {
   });
 
   const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
-  const [currentUser, setCurrentUser] = useState<Employee | null>(authService.getCurrentUser());
+  const [currentUser, setCurrentUser] = useState<Employee | null>(() => {
+    const user = authService.getCurrentUser();
+    // Verify session is valid
+    if (user && !authService.verifySession()) {
+      authService.logout();
+      return null;
+    }
+    return user;
+  });
   const [activeTab, setActiveTab] = useState('dashboard');
 
   useEffect(() => {
@@ -49,10 +57,12 @@ const App: React.FC = () => {
   }, [employees, attendance]);
 
   const handleLogin = (role: UserRole, email: string) => {
-    const user = employees.find(e => e.role === role && e.email === email) || employees.find(e => e.role === role) || employees[0];
-    authService.login(role); // Use auth service to track session
-    setCurrentUser(user);
-    setActiveTab('dashboard');
+    const user = employees.find(e => e.email.toLowerCase() === email.toLowerCase());
+    if (user) {
+      authService.login(role);
+      setCurrentUser(user);
+      setActiveTab('dashboard');
+    }
   };
 
   const handleLogout = () => {

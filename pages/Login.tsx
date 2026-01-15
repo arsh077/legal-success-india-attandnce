@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { UserRole } from '../types';
-import { ICONS, INITIAL_EMPLOYEES } from '../constants';
+import { ICONS, AUTHORIZED_USERS } from '../constants';
 
 interface LoginProps {
   onLogin: (role: UserRole, email: string) => void;
@@ -11,16 +11,35 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (selectedRole) {
-      onLogin(selectedRole, email);
+    setError('');
+
+    // Find user in authorized users list
+    const user = AUTHORIZED_USERS.find(
+      u => u.email.toLowerCase() === email.toLowerCase() && u.password === password
+    );
+
+    if (!user) {
+      setError('Invalid email or password. Access denied.');
+      return;
     }
+
+    // Check if role matches
+    if (user.role !== selectedRole) {
+      setError(`This email is not authorized for ${selectedRole} access.`);
+      return;
+    }
+
+    // Login successful
+    onLogin(user.role, user.email);
   };
 
-  const getDemoEmail = (role: UserRole) => {
-    return INITIAL_EMPLOYEES.find(emp => emp.role === role)?.email || '';
+  const getAuthorizedEmailsForRole = (role: UserRole) => {
+    const users = AUTHORIZED_USERS.filter(u => u.role === role);
+    return users.length > 0 ? users[0].email : 'No authorized users';
   };
 
   if (!selectedRole) {
@@ -122,10 +141,16 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           </div>
 
           <div className="p-4 bg-indigo-50 rounded-2xl border border-indigo-100">
-            <p className="text-[10px] font-black text-indigo-700 uppercase tracking-widest mb-1">Demo Hint:</p>
-            <p className="text-xs text-indigo-900 font-bold">Email: <span className="select-all font-black">{getDemoEmail(selectedRole)}</span></p>
-            <p className="text-xs text-indigo-600 italic">Password: Any password works</p>
+            <p className="text-[10px] font-black text-indigo-700 uppercase tracking-widest mb-1">Authorized Access Only:</p>
+            <p className="text-xs text-indigo-900 font-bold">Example: <span className="select-all font-black">{getAuthorizedEmailsForRole(selectedRole)}</span></p>
+            <p className="text-xs text-red-600 font-bold mt-1">⚠️ Only authorized emails with correct passwords can login</p>
           </div>
+
+          {error && (
+            <div className="p-4 bg-red-50 rounded-2xl border border-red-200">
+              <p className="text-xs text-red-700 font-bold">❌ {error}</p>
+            </div>
+          )}
 
           <button type="submit" className="w-full bg-indigo-600 text-white font-black py-5 rounded-2xl uppercase tracking-widest text-xs hover:bg-indigo-700 shadow-xl shadow-indigo-100 transition-all">
             Secure Sign In

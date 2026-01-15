@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# Sensitive files - DO NOT COMMIT
+SECURE_CREDENTIALS.md
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
