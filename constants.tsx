@@ -5,10 +5,10 @@ import { UserRole, Employee, LeaveType } from './types';
 // Secure user credentials - Only these emails can login with correct passwords
 export const AUTHORIZED_USERS = [
   { email: 'Info@legalsuccessindia.om', password: 'Legal@000', role: UserRole.ADMIN, name: 'Admin - Info' },
-  { email: 'lsikabir27@gmail.com', password: 'Legal@001', role: UserRole.MANAGER, name: 'Kabir' },
-  { email: 'legalsuccessindia94@gmail.com', password: 'Legal@002', role: UserRole.MANAGER, name: 'Legal Success 94' },
+  { email: 'vizralegalsuccess@gmail.com', password: 'Legal@004', role: UserRole.MANAGER, name: 'Vizra' },
+  { email: 'lsikabir27@gmail.com', password: 'Legal@001', role: UserRole.EMPLOYEE, name: 'Kabir' },
+  { email: 'legalsuccessindia94@gmail.com', password: 'Legal@002', role: UserRole.EMPLOYEE, name: 'Legal Success 94' },
   { email: 'sahinlegalsuccess@gmail.com', password: 'Legal@003', role: UserRole.EMPLOYEE, name: 'Sahin' },
-  { email: 'vizralegalsuccess@gmail.com', password: 'Legal@004', role: UserRole.EMPLOYEE, name: 'Vizra' },
   { email: 'lsinikhat@gmail.com', password: 'Legal@005', role: UserRole.EMPLOYEE, name: 'Nikhat' }
 ];
 
@@ -28,8 +28,8 @@ export const INITIAL_EMPLOYEES: Employee[] = [
   },
   {
     id: 'EMP002',
-    name: 'Kabir',
-    email: 'lsikabir27@gmail.com',
+    name: 'Vizra',
+    email: 'vizralegalsuccess@gmail.com',
     phone: '+91 9876543211',
     designation: 'Operations Manager',
     department: 'Operations',
@@ -41,22 +41,9 @@ export const INITIAL_EMPLOYEES: Employee[] = [
   },
   {
     id: 'EMP003',
-    name: 'Legal Success 94',
-    email: 'legalsuccessindia94@gmail.com',
+    name: 'Kabir',
+    email: 'lsikabir27@gmail.com',
     phone: '+91 9876543212',
-    designation: 'Senior Manager',
-    department: 'Legal',
-    salary: 80000,
-    role: UserRole.MANAGER,
-    status: 'ACTIVE',
-    dateJoined: '2023-08-15',
-    leaveBalance: { [LeaveType.CASUAL]: 8, [LeaveType.SICK]: 10, [LeaveType.EARNED]: 15, [LeaveType.LOP]: 0 }
-  },
-  {
-    id: 'EMP004',
-    name: 'Sahin',
-    email: 'sahinlegalsuccess@gmail.com',
-    phone: '+91 9876543213',
     designation: 'Legal Consultant',
     department: 'Legal',
     salary: 65000,
@@ -66,13 +53,26 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     leaveBalance: { [LeaveType.CASUAL]: 5, [LeaveType.SICK]: 8, [LeaveType.EARNED]: 10, [LeaveType.LOP]: 0 }
   },
   {
-    id: 'EMP005',
-    name: 'Vizra',
-    email: 'vizralegalsuccess@gmail.com',
-    phone: '+91 9876543214',
+    id: 'EMP004',
+    name: 'Legal Success 94',
+    email: 'legalsuccessindia94@gmail.com',
+    phone: '+91 9876543213',
     designation: 'Legal Associate',
     department: 'Legal',
     salary: 60000,
+    role: UserRole.EMPLOYEE,
+    status: 'ACTIVE',
+    dateJoined: '2024-02-15',
+    leaveBalance: { [LeaveType.CASUAL]: 5, [LeaveType.SICK]: 8, [LeaveType.EARNED]: 10, [LeaveType.LOP]: 0 }
+  },
+  {
+    id: 'EMP005',
+    name: 'Sahin',
+    email: 'sahinlegalsuccess@gmail.com',
+    phone: '+91 9876543214',
+    designation: 'Legal Executive',
+    department: 'Legal',
+    salary: 55000,
     role: UserRole.EMPLOYEE,
     status: 'ACTIVE',
     dateJoined: '2024-03-20',
@@ -83,9 +83,9 @@ export const INITIAL_EMPLOYEES: Employee[] = [
     name: 'Nikhat',
     email: 'lsinikhat@gmail.com',
     phone: '+91 9876543215',
-    designation: 'Legal Executive',
+    designation: 'Legal Assistant',
     department: 'Legal',
-    salary: 55000,
+    salary: 50000,
     role: UserRole.EMPLOYEE,
     status: 'ACTIVE',
     dateJoined: '2024-06-15',

@@ -27,13 +27,13 @@ Your attendance portal now has **SECURE AUTHENTICATION**!
 ### Admin (1 user):
 - **Info@legalsuccessindia.om** → Password: `Legal@000`
 
-### Managers (2 users):
+### Manager (1 user):
+- **vizralegalsuccess@gmail.com** → Password: `Legal@004`
+
+### Employees (4 users):
 - **lsikabir27@gmail.com** → Password: `Legal@001`
 - **legalsuccessindia94@gmail.com** → Password: `Legal@002`
-
-### Employees (3 users):
 - **sahinlegalsuccess@gmail.com** → Password: `Legal@003`
-- **vizralegalsuccess@gmail.com** → Password: `Legal@004`
 - **lsinikhat@gmail.com** → Password: `Legal@005`
 
 ---
@@ -167,8 +167,8 @@ Deploy to Vercel - security will work automatically!
 
 **Authorized Users**: 6 users
 - 1 Admin
-- 2 Managers  
-- 3 Employees
+- 1 Manager  
+- 4 Employees
 
 **Security Level**: Production-ready
 
