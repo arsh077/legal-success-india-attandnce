@@ -57,16 +57,28 @@ const App: React.FC = () => {
   }, [employees, attendance]);
 
   const handleLogin = (role: UserRole, email: string) => {
+    console.log('handleLogin called:', { role, email });
+    console.log('Available employees:', employees);
+    
     const user = employees.find(e => e.email.toLowerCase() === email.toLowerCase());
+    console.log('Found employee:', user);
+    
     if (user) {
       // Create auth token for session
       const authUser = AUTHORIZED_USERS.find(u => u.email.toLowerCase() === email.toLowerCase());
+      console.log('Found auth user:', authUser);
+      
       if (authUser) {
-        localStorage.setItem('auth_token', btoa(`${authUser.email}:${authUser.password}`));
+        const token = btoa(`${authUser.email}:${authUser.password}`);
+        localStorage.setItem('auth_token', token);
+        console.log('Auth token created');
       }
       authService.login(role);
       setCurrentUser(user);
       setActiveTab('dashboard');
+      console.log('Login complete, user set');
+    } else {
+      console.error('Employee not found in employees list');
     }
   };
 
