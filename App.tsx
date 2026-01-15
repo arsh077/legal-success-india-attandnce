@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { UserRole, Employee, AttendanceRecord, LeaveRequest, LeaveStatus, AttendanceStatus } from './types';
 import { authService } from './services/authService';
-import { INITIAL_EMPLOYEES } from './constants';
+import { INITIAL_EMPLOYEES, AUTHORIZED_USERS } from './constants';
 import Sidebar from './components/Sidebar';
 import Dashboard from './pages/Dashboard';
 import Attendance from './pages/Attendance';
@@ -59,6 +59,11 @@ const App: React.FC = () => {
   const handleLogin = (role: UserRole, email: string) => {
     const user = employees.find(e => e.email.toLowerCase() === email.toLowerCase());
     if (user) {
+      // Create auth token for session
+      const authUser = AUTHORIZED_USERS.find(u => u.email.toLowerCase() === email.toLowerCase());
+      if (authUser) {
+        localStorage.setItem('auth_token', btoa(`${authUser.email}:${authUser.password}`));
+      }
       authService.login(role);
       setCurrentUser(user);
       setActiveTab('dashboard');
