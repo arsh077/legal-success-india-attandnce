@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { UserRole, Employee, AttendanceRecord, LeaveRequest, LeaveStatus, AttendanceStatus } from './types';
 import { authService } from './services/authService';
+import { realtimeService } from './services/realtimeService';
 import { INITIAL_EMPLOYEES, AUTHORIZED_USERS } from './constants';
 import Sidebar from './components/Sidebar';
 import Dashboard from './pages/Dashboard';
@@ -54,7 +55,44 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('ls_employees', JSON.stringify(employees));
     localStorage.setItem('ls_attendance', JSON.stringify(attendance));
+    
+    // Broadcast attendance updates to other tabs
+    realtimeService.broadcastAttendanceUpdate(attendance);
   }, [employees, attendance]);
+
+  // Setup real-time listeners
+  useEffect(() => {
+    // Listen for clock in events from other tabs
+    const unsubClockIn = realtimeService.on('CLOCK_IN', (data: any) => {
+      console.log('🟢 Real-time: Employee clocked in', data);
+      // Force re-render by updating state
+      setAttendance(prev => [...prev]);
+    });
+
+    // Listen for clock out events from other tabs
+    const unsubClockOut = realtimeService.on('CLOCK_OUT', (data: any) => {
+      console.log('🔴 Real-time: Employee clocked out', data);
+      // Force re-render by updating state
+      setAttendance(prev => [...prev]);
+    });
+
+    // Listen for attendance updates
+    const unsubAttendance = realtimeService.on('ATTENDANCE_UPDATE', (data: any) => {
+      // Sync attendance from other tabs
+      const storedAttendance = localStorage.getItem('ls_attendance');
+      if (storedAttendance) {
+        const parsedAttendance = JSON.parse(storedAttendance);
+        setAttendance(parsedAttendance);
+      }
+    });
+
+    // Cleanup listeners on unmount
+    return () => {
+      unsubClockIn();
+      unsubClockOut();
+      unsubAttendance();
+    };
+  }, []);
 
   const handleLogin = (role: UserRole, email: string) => {
     // First, ensure employees are loaded from INITIAL_EMPLOYEES if not in state
@@ -110,20 +148,43 @@ const App: React.FC = () => {
     const existing = attendance.find(a => a.employeeId === empId && a.date === today && !a.clockOut);
 
     if (existing) {
-      setAttendance(prev => prev.map(a => 
-        a.id === existing.id ? { ...a, clockOut: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }) } : a
-      ));
+      // Clock Out
+      const clockOutTime = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+      const updatedAttendance = attendance.map(a => 
+        a.id === existing.id ? { ...a, clockOut: clockOutTime } : a
+      );
+      setAttendance(updatedAttendance);
+      
+      // Broadcast clock out event
+      const employee = employees.find(e => e.id === empId);
+      if (employee) {
+        const clockInTime = new Date(`${today} ${existing.clockIn}`);
+        const clockOutTimeObj = new Date();
+        const duration = Math.round((clockOutTimeObj.getTime() - clockInTime.getTime()) / (1000 * 60));
+        const durationStr = `${Math.floor(duration / 60)}h ${duration % 60}m`;
+        
+        realtimeService.broadcastClockOut(empId, employee.name, clockOutTime, durationStr);
+      }
     } else {
+      // Clock In
       const now = new Date();
       const isLate = now.getHours() > 9 || (now.getHours() === 9 && now.getMinutes() > 15);
+      const clockInTime = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+      
       const newRecord: AttendanceRecord = {
         id: `ATT${Math.random().toString(36).substr(2, 9)}`,
         employeeId: empId,
         date: today,
-        clockIn: now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true }),
+        clockIn: clockInTime,
         status: isLate ? AttendanceStatus.LATE : AttendanceStatus.PRESENT
       };
       setAttendance(prev => [newRecord, ...prev]);
+      
+      // Broadcast clock in event
+      const employee = employees.find(e => e.id === empId);
+      if (employee) {
+        realtimeService.broadcastClockIn(empId, employee.name, clockInTime, isLate);
+      }
     }
   };
 
