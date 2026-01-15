@@ -141,9 +141,8 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           </div>
 
           <div className="p-4 bg-indigo-50 rounded-2xl border border-indigo-100">
-            <p className="text-[10px] font-black text-indigo-700 uppercase tracking-widest mb-1">Authorized Access Only:</p>
+            <p className="text-[10px] font-black text-indigo-700 uppercase tracking-widest mb-1">Authorized Access Only</p>
             <p className="text-xs text-indigo-900 font-bold">Example: <span className="select-all font-black">{getAuthorizedEmailsForRole(selectedRole)}</span></p>
-            <p className="text-xs text-red-600 font-bold mt-1">⚠️ Only authorized emails with correct passwords can login</p>
           </div>
 
           {error && (
@@ -152,7 +151,10 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             </div>
           )}
 
-          <button type="submit" className="w-full bg-indigo-600 text-white font-black py-5 rounded-2xl uppercase tracking-widest text-xs hover:bg-indigo-700 shadow-xl shadow-indigo-100 transition-all">
+          <button 
+            type="submit" 
+            className="w-full bg-indigo-600 text-white font-black py-5 rounded-2xl uppercase tracking-widest text-xs hover:bg-indigo-700 shadow-xl shadow-indigo-100 transition-all cursor-pointer"
+          >
             Secure Sign In
           </button>
         </form>
