@@ -13,13 +13,17 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
+    // Trim whitespace from inputs
+    const trimmedEmail = email.trim();
+    const trimmedPassword = password.trim();
+
     // Find user in authorized users list
     const user = AUTHORIZED_USERS.find(
-      u => u.email.toLowerCase() === email.toLowerCase() && u.password === password
+      u => u.email.toLowerCase() === trimmedEmail.toLowerCase() && u.password === trimmedPassword
     );
 
     if (!user) {
@@ -32,6 +36,9 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       setError(`This email is not authorized for ${selectedRole} access.`);
       return;
     }
+
+    // Small delay to ensure state updates
+    await new Promise(resolve => setTimeout(resolve, 100));
 
     // Login successful - call parent handler
     onLogin(user.role, user.email);
