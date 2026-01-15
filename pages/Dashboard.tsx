@@ -14,13 +14,43 @@ interface DashboardProps {
 const Dashboard: React.FC<DashboardProps> = ({ role, employees, attendance, leaves, currentUser }) => {
   const isAdmin = role === UserRole.ADMIN;
   const today = new Date().toISOString().split('T')[0];
-  const presentToday = attendance.filter(a => a.date === today).length;
+  
+  // Real-time attendance calculation
+  const todayAttendance = attendance.filter(a => a.date === today);
+  const presentToday = todayAttendance.filter(a => a.clockIn && !a.clockOut).length; // Currently clocked in
+  const lateArrivals = todayAttendance.filter(a => a.status === AttendanceStatus.LATE).length;
+  const onLeaveToday = leaves.filter(l => 
+    l.status === 'APPROVED' && 
+    new Date(l.startDate) <= new Date(today) && 
+    new Date(l.endDate) >= new Date(today)
+  ).length;
 
   const adminStats = [
-    { label: 'Total Staff', value: employees.length, icon: <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>, color: 'bg-blue-500' },
-    { label: 'Present Today', value: presentToday, subValue: `${Math.round((presentToday/employees.length)*100)}%`, icon: <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>, color: 'bg-green-500' },
-    { label: 'Pending Leaves', value: leaves.filter(l => l.status === 'PENDING').length, icon: <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>, color: 'bg-purple-500' },
-    { label: 'Late Arrivals', value: 2, icon: <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>, color: 'bg-orange-500' },
+    { 
+      label: 'Total Staff', 
+      value: employees.length, 
+      icon: <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>, 
+      color: 'bg-blue-500' 
+    },
+    { 
+      label: 'Present Today', 
+      value: presentToday, 
+      subValue: employees.length > 0 ? `${Math.round((presentToday/employees.length)*100)}%` : '0%', 
+      icon: <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>, 
+      color: 'bg-green-500' 
+    },
+    { 
+      label: 'On Leave', 
+      value: onLeaveToday, 
+      icon: <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>, 
+      color: 'bg-purple-500' 
+    },
+    { 
+      label: 'Late Arrivals', 
+      value: lateArrivals, 
+      icon: <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>, 
+      color: 'bg-orange-500' 
+    },
   ];
 
   // Calculate Monthly aggregate for Admin only
