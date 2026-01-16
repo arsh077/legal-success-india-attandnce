@@ -4,6 +4,7 @@ import { UserRole, Employee, AttendanceRecord, LeaveRequest, LeaveStatus, Attend
 import { authService } from './services/authService';
 import { realtimeService } from './services/realtimeService';
 import { pusherService } from './services/pusherService';
+import { supabaseService } from './services/supabaseService';
 import { notificationService, Notification } from './services/notificationService';
 import { INITIAL_EMPLOYEES, AUTHORIZED_USERS } from './constants';
 import Sidebar from './components/Sidebar';
@@ -66,8 +67,9 @@ const App: React.FC = () => {
     localStorage.setItem('last_update', Date.now().toString());
     
     // Broadcast attendance updates via ALL channels with actual data
-    pusherService.triggerAttendanceUpdate(attendance);
-    realtimeService.broadcastAttendanceUpdate(attendance);
+    supabaseService.triggerAttendanceUpdate(attendance); // Supabase (Primary - Most Reliable)
+    pusherService.triggerAttendanceUpdate(attendance); // Pusher (Backup)
+    realtimeService.broadcastAttendanceUpdate(attendance); // BroadcastChannel (Fallback)
     
     // Also trigger a custom event for same-tab updates
     window.dispatchEvent(new CustomEvent('attendance-changed', { 
@@ -75,7 +77,7 @@ const App: React.FC = () => {
     }));
   }, [employees, attendance, leaveRequests, notifications]);
 
-  // Setup real-time listeners (Pusher + BroadcastChannel + Polling)
+  // Setup real-time listeners (Supabase + Pusher + BroadcastChannel + Polling)
   useEffect(() => {
     console.log('🔧 Setting up real-time listeners...');
     
@@ -84,10 +86,9 @@ const App: React.FC = () => {
       setNotifications(prev => [notification, ...prev]);
     });
     
-    // PUSHER LISTENERS (Primary - Most Reliable for cross-device)
-    const unsubPusherClockIn = pusherService.on('CLOCK_IN', (data: any) => {
-      console.log('🟢 Pusher: Employee clocked in', data);
-      // Force reload from localStorage (will be updated by other device)
+    // SUPABASE LISTENERS (Primary - Most Reliable for cross-device)
+    const unsubSupabaseClockIn = supabaseService.on('CLOCK_IN', (data: any) => {
+      console.log('🟢 Supabase: Employee clocked in', data);
       setTimeout(() => {
         const storedAttendance = localStorage.getItem('ls_attendance');
         if (storedAttendance) {
@@ -95,7 +96,76 @@ const App: React.FC = () => {
         }
       }, 100);
       
-      // Create notification for admin only
+      if (currentUser && currentUser.role === UserRole.ADMIN) {
+        notificationService.clockIn(data.employeeName, data.clockIn, data.isLate);
+      }
+    });
+
+    const unsubSupabaseClockOut = supabaseService.on('CLOCK_OUT', (data: any) => {
+      console.log('🔴 Supabase: Employee clocked out', data);
+      setTimeout(() => {
+        const storedAttendance = localStorage.getItem('ls_attendance');
+        if (storedAttendance) {
+          setAttendance(JSON.parse(storedAttendance));
+        }
+      }, 100);
+      
+      if (currentUser && currentUser.role === UserRole.ADMIN) {
+        notificationService.clockOut(data.employeeName, data.clockOut, data.duration);
+      }
+    });
+
+    const unsubSupabaseAttendance = supabaseService.on('ATTENDANCE_UPDATE', (data: any) => {
+      console.log('📊 Supabase: Attendance updated', data);
+      if (data && data.attendance) {
+        console.log('📥 Syncing attendance from Supabase:', data.attendance.length, 'records');
+        setAttendance(data.attendance);
+        localStorage.setItem('ls_attendance', JSON.stringify(data.attendance));
+      }
+    });
+    
+    const unsubSupabaseLeaveRequest = supabaseService.on('LEAVE_REQUEST', (data: any) => {
+      console.log('📝 Supabase: Leave request', data);
+      setTimeout(() => {
+        const storedLeaves = localStorage.getItem('ls_leave_requests');
+        if (storedLeaves) {
+          setLeaveRequests(JSON.parse(storedLeaves));
+        }
+      }, 100);
+      
+      if (currentUser && (currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.MANAGER)) {
+        notificationService.leaveRequest(data.employeeName, data.leaveType, data.startDate, data.endDate);
+      }
+    });
+    
+    const unsubSupabaseLeaveAction = supabaseService.on('LEAVE_ACTION', (data: any) => {
+      console.log('✅ Supabase: Leave action', data);
+      setTimeout(() => {
+        const storedLeaves = localStorage.getItem('ls_leave_requests');
+        if (storedLeaves) {
+          setLeaveRequests(JSON.parse(storedLeaves));
+        }
+      }, 100);
+      
+      if (currentUser && data.employeeId === currentUser.id) {
+        if (data.status === 'APPROVED') {
+          notificationService.leaveApproved(data.leaveType);
+        } else {
+          notificationService.leaveRejected(data.leaveType);
+        }
+      }
+    });
+    
+    // PUSHER LISTENERS (Backup - if Supabase fails)
+    const unsubPusherClockIn = pusherService.on('CLOCK_IN', (data: any) => {
+      console.log('🟢 Pusher: Employee clocked in', data);
+      setTimeout(() => {
+        const storedAttendance = localStorage.getItem('ls_attendance');
+        if (storedAttendance) {
+          setAttendance(JSON.parse(storedAttendance));
+        }
+      }, 100);
+      
       if (currentUser && currentUser.role === UserRole.ADMIN) {
         notificationService.clockIn(data.employeeName, data.clockIn, data.isLate);
       }
@@ -110,7 +180,6 @@ const App: React.FC = () => {
         }
       }, 100);
       
-      // Create notification for admin only
       if (currentUser && currentUser.role === UserRole.ADMIN) {
         notificationService.clockOut(data.employeeName, data.clockOut, data.duration);
       }
@@ -118,19 +187,15 @@ const App: React.FC = () => {
 
     const unsubPusherAttendance = pusherService.on('ATTENDANCE_UPDATE', (data: any) => {
       console.log('📊 Pusher: Attendance updated', data);
-      // Use the actual attendance data from the event
       if (data && data.attendance) {
         console.log('📥 Syncing attendance from Pusher event:', data.attendance.length, 'records');
         setAttendance(data.attendance);
-        // Also update localStorage for persistence
         localStorage.setItem('ls_attendance', JSON.stringify(data.attendance));
       }
     });
     
-    // LEAVE REQUEST LISTENERS
     const unsubPusherLeaveRequest = pusherService.on('LEAVE_REQUEST', (data: any) => {
       console.log('📝 Pusher: Leave request received', data);
-      // Reload leave requests
       setTimeout(() => {
         const storedLeaves = localStorage.getItem('ls_leave_requests');
         if (storedLeaves) {
@@ -138,7 +203,6 @@ const App: React.FC = () => {
         }
       }, 100);
       
-      // Create notification for admin/manager only
       if (currentUser && (currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.MANAGER)) {
         notificationService.leaveRequest(data.employeeName, data.leaveType, data.startDate, data.endDate);
       }
@@ -146,7 +210,6 @@ const App: React.FC = () => {
     
     const unsubPusherLeaveAction = pusherService.on('LEAVE_ACTION', (data: any) => {
       console.log('✅ Pusher: Leave action taken', data);
-      // Reload leave requests
       setTimeout(() => {
         const storedLeaves = localStorage.getItem('ls_leave_requests');
         if (storedLeaves) {
@@ -154,7 +217,6 @@ const App: React.FC = () => {
         }
       }, 100);
       
-      // Create notification for employee
       if (currentUser && data.employeeId === currentUser.id) {
         if (data.status === 'APPROVED') {
           notificationService.leaveApproved(data.leaveType);
@@ -215,6 +277,11 @@ const App: React.FC = () => {
     // Cleanup
     return () => {
       unsubNotifications();
+      unsubSupabaseClockIn();
+      unsubSupabaseClockOut();
+      unsubSupabaseAttendance();
+      unsubSupabaseLeaveRequest();
+      unsubSupabaseLeaveAction();
       unsubPusherClockIn();
       unsubPusherClockOut();
       unsubPusherAttendance();
@@ -306,10 +373,13 @@ const App: React.FC = () => {
         const duration = Math.round((clockOutTimeObj.getTime() - clockInTime.getTime()) / (1000 * 60));
         const durationStr = `${Math.floor(duration / 60)}h ${duration % 60}m`;
         
-        // Pusher (Primary) - with actual data
+        // Supabase (Primary - Most Reliable)
+        supabaseService.triggerClockOut(empId, employee.name, clockOutTime, durationStr);
+        
+        // Pusher (Backup)
         pusherService.triggerClockOut(empId, employee.name, clockOutTime, durationStr);
         
-        // BroadcastChannel (Backup)
+        // BroadcastChannel (Fallback)
         realtimeService.broadcastClockOut(empId, employee.name, clockOutTime, durationStr);
         
         // Force update localStorage with timestamp
@@ -336,10 +406,13 @@ const App: React.FC = () => {
       // Broadcast clock in event via ALL channels
       const employee = employees.find(e => e.id === empId);
       if (employee) {
-        // Pusher (Primary) - with actual data
+        // Supabase (Primary - Most Reliable)
+        supabaseService.triggerClockIn(empId, employee.name, clockInTime, isLate);
+        
+        // Pusher (Backup)
         pusherService.triggerClockIn(empId, employee.name, clockInTime, isLate);
         
-        // BroadcastChannel (Backup)
+        // BroadcastChannel (Fallback)
         realtimeService.broadcastClockIn(empId, employee.name, clockInTime, isLate);
         
         // Force update localStorage with timestamp
@@ -383,7 +456,8 @@ const App: React.FC = () => {
             localStorage.setItem('ls_leave_requests', JSON.stringify(updatedLeaves));
             localStorage.setItem('last_update', Date.now().toString());
             
-            // Trigger Pusher event for leave request
+            // Trigger events via all channels
+            supabaseService.triggerLeaveRequest(r.employeeId, r.employeeName, r.type, r.startDate, r.endDate);
             pusherService.trigger('leave-request', {
               employeeId: r.employeeId,
               employeeName: r.employeeName,
@@ -402,8 +476,9 @@ const App: React.FC = () => {
             localStorage.setItem('ls_leave_requests', JSON.stringify(updatedLeaves));
             localStorage.setItem('last_update', Date.now().toString());
             
-            // Trigger Pusher event for leave action
+            // Trigger events via all channels
             if (request) {
+              supabaseService.triggerLeaveAction(request.employeeId, request.employeeName, request.type, s);
               pusherService.trigger('leave-action', {
                 employeeId: request.employeeId,
                 employeeName: request.employeeName,
