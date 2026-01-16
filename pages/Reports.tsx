@@ -97,8 +97,9 @@ const Reports: React.FC<ReportsProps> = ({ employees, attendance }) => {
       const earlyDepartures = empAttendance.filter(a => {
         if (!a.clockOut) return false;
         const [time] = a.clockOut.split(' ');
-        const [hours] = time.split(':').map(Number);
-        return hours < 18; // Before 6 PM
+        const [hours, minutes] = time.split(':').map(Number);
+        // Early if before 6:40 PM (18 hours 40 minutes)
+        return hours < 18 || (hours === 18 && minutes < 40);
       }).length;
 
       // Calculate total hours

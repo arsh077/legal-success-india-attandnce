@@ -231,16 +231,21 @@ const App: React.FC = () => {
         const duration = Math.round((clockOutTimeObj.getTime() - clockInTime.getTime()) / (1000 * 60));
         const durationStr = `${Math.floor(duration / 60)}h ${duration % 60}m`;
         
-        // Pusher (Primary)
+        // Pusher (Primary) - with actual data
         pusherService.triggerClockOut(empId, employee.name, clockOutTime, durationStr);
         
         // BroadcastChannel (Backup)
         realtimeService.broadcastClockOut(empId, employee.name, clockOutTime, durationStr);
+        
+        // Force update localStorage with timestamp
+        localStorage.setItem('ls_attendance', JSON.stringify(updatedAttendance));
+        localStorage.setItem('last_update', Date.now().toString());
       }
     } else {
       // Clock In
       const now = new Date();
-      const isLate = now.getHours() > 9 || (now.getHours() === 9 && now.getMinutes() > 15);
+      // Late if after 10:40 AM (10 hours 40 minutes)
+      const isLate = now.getHours() > 10 || (now.getHours() === 10 && now.getMinutes() > 40);
       const clockInTime = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
       
       const newRecord: AttendanceRecord = {
@@ -250,16 +255,21 @@ const App: React.FC = () => {
         clockIn: clockInTime,
         status: isLate ? AttendanceStatus.LATE : AttendanceStatus.PRESENT
       };
-      setAttendance(prev => [newRecord, ...prev]);
+      const newAttendance = [newRecord, ...attendance];
+      setAttendance(newAttendance);
       
       // Broadcast clock in event via ALL channels
       const employee = employees.find(e => e.id === empId);
       if (employee) {
-        // Pusher (Primary)
+        // Pusher (Primary) - with actual data
         pusherService.triggerClockIn(empId, employee.name, clockInTime, isLate);
         
         // BroadcastChannel (Backup)
         realtimeService.broadcastClockIn(empId, employee.name, clockInTime, isLate);
+        
+        // Force update localStorage with timestamp
+        localStorage.setItem('ls_attendance', JSON.stringify(newAttendance));
+        localStorage.setItem('last_update', Date.now().toString());
       }
     }
   };
