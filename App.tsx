@@ -126,12 +126,13 @@ const App: React.FC = () => {
     
     const unsubSupabaseLeaveRequest = supabaseService.on('LEAVE_REQUEST', (data: any) => {
       console.log('📝 Supabase: Leave request', data);
-      setTimeout(() => {
-        const storedLeaves = localStorage.getItem('ls_leave_requests');
-        if (storedLeaves) {
-          setLeaveRequests(JSON.parse(storedLeaves));
-        }
-      }, 100);
+      // Force reload from localStorage
+      const storedLeaves = localStorage.getItem('ls_leave_requests');
+      if (storedLeaves) {
+        const leaves = JSON.parse(storedLeaves);
+        console.log('📥 Syncing leave requests:', leaves.length, 'requests');
+        setLeaveRequests(leaves);
+      }
       
       if (currentUser && (currentUser.role === UserRole.ADMIN || currentUser.role === UserRole.MANAGER)) {
         notificationService.leaveRequest(data.employeeName, data.leaveType, data.startDate, data.endDate);
@@ -140,12 +141,13 @@ const App: React.FC = () => {
     
     const unsubSupabaseLeaveAction = supabaseService.on('LEAVE_ACTION', (data: any) => {
       console.log('✅ Supabase: Leave action', data);
-      setTimeout(() => {
-        const storedLeaves = localStorage.getItem('ls_leave_requests');
-        if (storedLeaves) {
-          setLeaveRequests(JSON.parse(storedLeaves));
-        }
-      }, 100);
+      // Force reload from localStorage
+      const storedLeaves = localStorage.getItem('ls_leave_requests');
+      if (storedLeaves) {
+        const leaves = JSON.parse(storedLeaves);
+        console.log('📥 Syncing leave actions:', leaves.length, 'requests');
+        setLeaveRequests(leaves);
+      }
       
       if (currentUser && data.employeeId === currentUser.id) {
         if (data.status === 'APPROVED') {

@@ -162,7 +162,11 @@ class SupabaseService {
       timestamp: new Date().toISOString()
     };
     
+    console.log('📤 Broadcasting leave request:', data);
     this.broadcast('leave-request', data);
+    
+    // Also update localStorage
+    localStorage.setItem('last_update', Date.now().toString());
   }
 
   triggerLeaveAction(employeeId: string, employeeName: string, leaveType: string, status: string) {
@@ -174,7 +178,11 @@ class SupabaseService {
       timestamp: new Date().toISOString()
     };
     
+    console.log('📤 Broadcasting leave action:', data);
     this.broadcast('leave-action', data);
+    
+    // Also update localStorage
+    localStorage.setItem('last_update', Date.now().toString());
   }
 
   // Check if connected
