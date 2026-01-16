@@ -47,6 +47,7 @@ const App: React.FC = () => {
     const saved = localStorage.getItem('ls_notifications');
     return saved ? JSON.parse(saved) : [];
   });
+  const [isProcessingClock, setIsProcessingClock] = useState(false);
 
   // Clear old demo data on first load (one-time reset)
   useEffect(() => {
@@ -365,11 +366,21 @@ const App: React.FC = () => {
 
   // State Mutators
   const onClockToggle = (empId: string) => {
+    // Prevent double-click
+    if (isProcessingClock) {
+      console.log('⚠️ Clock action already in progress, ignoring...');
+      return;
+    }
+    
+    setIsProcessingClock(true);
+    console.log('🔒 Clock action started for employee:', empId);
+    
     const today = new Date().toISOString().split('T')[0];
     const existing = attendance.find(a => a.employeeId === empId && a.date === today && !a.clockOut);
 
     if (existing) {
       // Clock Out
+      console.log('🔴 Clocking out...');
       const clockOutTime = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
       const updatedAttendance = attendance.map(a => 
         a.id === existing.id ? { ...a, clockOut: clockOutTime } : a
@@ -399,6 +410,7 @@ const App: React.FC = () => {
       }
     } else {
       // Clock In
+      console.log('🟢 Clocking in...');
       const now = new Date();
       // Late if after 10:40 AM (10 hours 40 minutes)
       const isLate = now.getHours() > 10 || (now.getHours() === 10 && now.getMinutes() > 40);
@@ -431,6 +443,12 @@ const App: React.FC = () => {
         localStorage.setItem('last_update', Date.now().toString());
       }
     }
+    
+    // Unlock after 3 seconds
+    setTimeout(() => {
+      setIsProcessingClock(false);
+      console.log('🔓 Clock action unlocked');
+    }, 3000);
   };
 
   if (!currentUser) {
