@@ -34,20 +34,18 @@ class PusherService {
   private setupListeners() {
     if (!this.channel) return;
 
-    // Listen for clock in events
-    this.channel.bind('clock-in', (data: any) => {
+    // Listen for CLIENT events (cross-device)
+    this.channel.bind('client-clock-in', (data: any) => {
       console.log('🟢 Pusher: Employee clocked in', data);
       this.notifyListeners('CLOCK_IN', data);
     });
 
-    // Listen for clock out events
-    this.channel.bind('clock-out', (data: any) => {
+    this.channel.bind('client-clock-out', (data: any) => {
       console.log('🔴 Pusher: Employee clocked out', data);
       this.notifyListeners('CLOCK_OUT', data);
     });
 
-    // Listen for attendance updates
-    this.channel.bind('attendance-update', (data: any) => {
+    this.channel.bind('client-attendance-update', (data: any) => {
       console.log('📊 Pusher: Attendance updated', data);
       this.notifyListeners('ATTENDANCE_UPDATE', data);
     });
