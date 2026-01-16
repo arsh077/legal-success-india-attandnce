@@ -14,11 +14,20 @@ interface NotificationBellProps {
   notifications: Notification[];
   onMarkAsRead: (id: string) => void;
   onClearAll: () => void;
+  onNotificationClick?: (notification: Notification) => void;
 }
 
-const NotificationBell: React.FC<NotificationBellProps> = ({ notifications, onMarkAsRead, onClearAll }) => {
+const NotificationBell: React.FC<NotificationBellProps> = ({ notifications, onMarkAsRead, onClearAll, onNotificationClick }) => {
   const [isOpen, setIsOpen] = useState(false);
   const unreadCount = notifications.filter(n => !n.read).length;
+
+  const handleNotificationClick = (notification: Notification) => {
+    onMarkAsRead(notification.id);
+    if (onNotificationClick) {
+      onNotificationClick(notification);
+    }
+    setIsOpen(false);
+  };
 
   return (
     <div className="relative">
@@ -71,7 +80,7 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ notifications, onMa
               notifications.map((notif) => (
                 <div
                   key={notif.id}
-                  onClick={() => onMarkAsRead(notif.id)}
+                  onClick={() => handleNotificationClick(notif)}
                   className={`p-4 border-b border-gray-50 hover:bg-gray-50 cursor-pointer transition-colors ${
                     !notif.read ? 'bg-indigo-50' : ''
                   }`}

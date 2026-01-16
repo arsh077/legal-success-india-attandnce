@@ -351,6 +351,15 @@ const App: React.FC = () => {
   const clearAllNotifications = () => {
     setNotifications([]);
   };
+  
+  const handleNotificationClick = (notification: Notification) => {
+    // Navigate to appropriate page based on notification type
+    if (notification.type === 'LEAVE_REQUEST' || notification.type === 'LEAVE_APPROVED' || notification.type === 'LEAVE_REJECTED') {
+      setActiveTab('leaves');
+    } else if (notification.type === 'CLOCK_IN' || notification.type === 'CLOCK_OUT') {
+      setActiveTab('dashboard');
+    }
+  };
 
   // State Mutators
   const onClockToggle = (empId: string) => {
@@ -521,6 +530,7 @@ const App: React.FC = () => {
               notifications={notifications}
               onMarkAsRead={markNotificationAsRead}
               onClearAll={clearAllNotifications}
+              onNotificationClick={handleNotificationClick}
             />
             <div className="h-8 w-px bg-gray-100"></div>
             <div className="flex items-center space-x-4">
