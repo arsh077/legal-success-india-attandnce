@@ -73,6 +73,12 @@ class SupabaseService {
       console.log('✅ Supabase: Leave action', payload);
       this.notifyListeners('LEAVE_ACTION', payload.payload);
     });
+
+    // Listen for employee updates
+    this.channel.on('broadcast', { event: 'employee-update' }, (payload: any) => {
+      console.log('👤 Supabase: Employee updated', payload);
+      this.notifyListeners('EMPLOYEE_UPDATE', payload.payload);
+    });
   }
 
   private notifyListeners(eventType: string, data: any) {
@@ -180,6 +186,22 @@ class SupabaseService {
     
     console.log('📤 Broadcasting leave action:', data);
     this.broadcast('leave-action', data);
+    
+    // Also update localStorage
+    localStorage.setItem('last_update', Date.now().toString());
+  }
+
+  triggerEmployeeUpdate(employeeId: string, name: string, email: string, phone: string) {
+    const data = {
+      employeeId,
+      name,
+      email,
+      phone,
+      timestamp: new Date().toISOString()
+    };
+    
+    console.log('📤 Broadcasting employee update:', data);
+    this.broadcast('employee-update', data);
     
     // Also update localStorage
     localStorage.setItem('last_update', Date.now().toString());

@@ -40,6 +40,12 @@ const Leaves: React.FC<LeavesProps> = ({ role, currentUser, requests, onApply, o
         <div>
           <h2 className="text-2xl font-black text-gray-900 tracking-tight">Leave Management</h2>
           <p className="text-gray-400 font-medium">Manage time-off requests</p>
+          {/* Debug info for admin */}
+          {isAdmin && (
+            <p className="text-xs text-indigo-600 font-bold mt-1">
+              📊 Total Requests: {requests.length} | Filtered: {filteredRequests.length} | Pending: {filteredRequests.filter(r => r.status === LeaveStatus.PENDING).length}
+            </p>
+          )}
         </div>
         <button
           onClick={() => setShowApplyModal(true)}

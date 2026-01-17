@@ -159,6 +159,28 @@ const App: React.FC = () => {
       }
     });
     
+    // Employee update listeners
+    const unsubSupabaseEmployeeUpdate = supabaseService.on('EMPLOYEE_UPDATE', (data: any) => {
+      console.log('👤 Supabase: Employee updated', data);
+      // Force reload employees from localStorage
+      const storedEmployees = localStorage.getItem('ls_employees');
+      if (storedEmployees) {
+        const employees = JSON.parse(storedEmployees);
+        console.log('📥 Syncing employees:', employees.length, 'employees');
+        setEmployees(employees);
+        
+        // Update current user if it's the same person
+        if (currentUser && currentUser.id === data.employeeId) {
+          const updatedUser = employees.find((e: Employee) => e.id === data.employeeId);
+          if (updatedUser) {
+            setCurrentUser(updatedUser);
+            localStorage.setItem('user', JSON.stringify(updatedUser));
+            console.log('👤 Current user updated:', updatedUser.name);
+          }
+        }
+      }
+    });
+    
     // PUSHER LISTENERS (Backup - if Supabase fails)
     const unsubPusherClockIn = pusherService.on('CLOCK_IN', (data: any) => {
       console.log('🟢 Pusher: Employee clocked in', data);
@@ -228,6 +250,27 @@ const App: React.FC = () => {
         }
       }
     });
+    
+    // Pusher employee update listener
+    const unsubPusherEmployeeUpdate = pusherService.on('employee-update', (data: any) => {
+      console.log('👤 Pusher: Employee updated', data);
+      setTimeout(() => {
+        const storedEmployees = localStorage.getItem('ls_employees');
+        if (storedEmployees) {
+          const employees = JSON.parse(storedEmployees);
+          setEmployees(employees);
+          
+          // Update current user if it's the same person
+          if (currentUser && currentUser.id === data.employeeId) {
+            const updatedUser = employees.find((e: Employee) => e.id === data.employeeId);
+            if (updatedUser) {
+              setCurrentUser(updatedUser);
+              localStorage.setItem('user', JSON.stringify(updatedUser));
+            }
+          }
+        }
+      }, 100);
+    });
 
     // BROADCAST CHANNEL LISTENERS (Backup - same browser only)
     const unsubClockIn = realtimeService.on('CLOCK_IN', (data: any) => {
@@ -253,12 +296,50 @@ const App: React.FC = () => {
         setAttendance(JSON.parse(storedAttendance));
       }
     });
+    
+    // BroadcastChannel employee update listener
+    const unsubEmployeeUpdate = realtimeService.on('EMPLOYEE_UPDATE', (data: any) => {
+      console.log('👤 BroadcastChannel: Employee updated', data);
+      const storedEmployees = localStorage.getItem('ls_employees');
+      if (storedEmployees) {
+        const employees = JSON.parse(storedEmployees);
+        setEmployees(employees);
+        
+        // Update current user if it's the same person
+        if (currentUser && currentUser.id === data.employeeId) {
+          const updatedUser = employees.find((e: Employee) => e.id === data.employeeId);
+          if (updatedUser) {
+            setCurrentUser(updatedUser);
+            localStorage.setItem('user', JSON.stringify(updatedUser));
+          }
+        }
+      }
+    });
 
     // STORAGE EVENT LISTENER (Cross-tab sync)
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'ls_attendance' && e.newValue) {
         console.log('💾 Storage changed: Syncing attendance');
         setAttendance(JSON.parse(e.newValue));
+      }
+      if (e.key === 'ls_employees' && e.newValue) {
+        console.log('💾 Storage changed: Syncing employees');
+        const employees = JSON.parse(e.newValue);
+        setEmployees(employees);
+        
+        // Update current user if it's the same person
+        if (currentUser) {
+          const updatedUser = employees.find((e: Employee) => e.id === currentUser.id);
+          if (updatedUser && updatedUser.name !== currentUser.name) {
+            setCurrentUser(updatedUser);
+            localStorage.setItem('user', JSON.stringify(updatedUser));
+            console.log('👤 Current user name updated via storage:', updatedUser.name);
+          }
+        }
+      }
+      if (e.key === 'ls_leave_requests' && e.newValue) {
+        console.log('💾 Storage changed: Syncing leave requests');
+        setLeaveRequests(JSON.parse(e.newValue));
       }
     };
     
@@ -268,11 +349,33 @@ const App: React.FC = () => {
     let lastUpdate = Date.now();
     const pollInterval = setInterval(() => {
       const storedAttendance = localStorage.getItem('ls_attendance');
+      const storedEmployees = localStorage.getItem('ls_employees');
+      const storedLeaves = localStorage.getItem('ls_leave_requests');
       const lastUpdateTime = localStorage.getItem('last_update');
       
-      if (storedAttendance && lastUpdateTime && parseInt(lastUpdateTime) > lastUpdate) {
-        console.log('🔄 Polling: Detected attendance change, syncing...');
-        setAttendance(JSON.parse(storedAttendance));
+      if (lastUpdateTime && parseInt(lastUpdateTime) > lastUpdate) {
+        if (storedAttendance) {
+          console.log('🔄 Polling: Detected attendance change, syncing...');
+          setAttendance(JSON.parse(storedAttendance));
+        }
+        if (storedEmployees) {
+          console.log('🔄 Polling: Detected employee change, syncing...');
+          const employees = JSON.parse(storedEmployees);
+          setEmployees(employees);
+          
+          // Update current user if needed
+          if (currentUser) {
+            const updatedUser = employees.find((e: Employee) => e.id === currentUser.id);
+            if (updatedUser && updatedUser.name !== currentUser.name) {
+              setCurrentUser(updatedUser);
+              localStorage.setItem('user', JSON.stringify(updatedUser));
+            }
+          }
+        }
+        if (storedLeaves) {
+          console.log('🔄 Polling: Detected leave requests change, syncing...');
+          setLeaveRequests(JSON.parse(storedLeaves));
+        }
         lastUpdate = parseInt(lastUpdateTime);
       }
     }, 1000); // Check every 1 second instead of 2
@@ -285,14 +388,17 @@ const App: React.FC = () => {
       unsubSupabaseAttendance();
       unsubSupabaseLeaveRequest();
       unsubSupabaseLeaveAction();
+      unsubSupabaseEmployeeUpdate();
       unsubPusherClockIn();
       unsubPusherClockOut();
       unsubPusherAttendance();
       unsubPusherLeaveRequest();
       unsubPusherLeaveAction();
+      unsubPusherEmployeeUpdate();
       unsubClockIn();
       unsubClockOut();
       unsubAttendance();
+      unsubEmployeeUpdate();
       window.removeEventListener('storage', handleStorageChange);
       clearInterval(pollInterval);
     };
@@ -451,6 +557,46 @@ const App: React.FC = () => {
     }, 3000);
   };
 
+  // Employee update handler with real-time sync
+  const handleEmployeeUpdate = (updatedEmployee: Employee) => {
+    console.log('👤 Updating employee:', updatedEmployee.name);
+    
+    // Update employees state
+    const updatedEmployees = employees.map(e => e.id === updatedEmployee.id ? updatedEmployee : e);
+    setEmployees(updatedEmployees);
+    
+    // Update current user if it's the same person
+    if (currentUser && currentUser.id === updatedEmployee.id) {
+      setCurrentUser(updatedEmployee);
+      localStorage.setItem('user', JSON.stringify(updatedEmployee));
+    }
+    
+    // Update AUTHORIZED_USERS in localStorage for login consistency
+    const authUsers = JSON.parse(localStorage.getItem('authorized_users') || '[]');
+    const updatedAuthUsers = authUsers.map((user: any) => 
+      user.email === updatedEmployee.email ? { ...user, name: updatedEmployee.name } : user
+    );
+    localStorage.setItem('authorized_users', JSON.stringify(updatedAuthUsers));
+    
+    // Broadcast employee update via all channels
+    supabaseService.triggerEmployeeUpdate(updatedEmployee.id, updatedEmployee.name, updatedEmployee.email, updatedEmployee.phone);
+    pusherService.trigger('employee-update', {
+      employeeId: updatedEmployee.id,
+      name: updatedEmployee.name,
+      email: updatedEmployee.email,
+      phone: updatedEmployee.phone,
+      timestamp: new Date().toISOString()
+    });
+    realtimeService.broadcast('EMPLOYEE_UPDATE', {
+      employeeId: updatedEmployee.id,
+      name: updatedEmployee.name,
+      email: updatedEmployee.email,
+      phone: updatedEmployee.phone
+    });
+    
+    console.log('✅ Employee update broadcasted to all devices');
+  };
+
   if (!currentUser) {
     return <Login onLogin={handleLogin} />;
   }
@@ -478,10 +624,11 @@ const App: React.FC = () => {
           currentUser={currentUser} 
           requests={leaveRequests} 
           onApply={(r) => {
-            setLeaveRequests([r, ...leaveRequests]);
+            console.log('📝 New leave request:', r);
+            const updatedLeaves = [r, ...leaveRequests];
+            setLeaveRequests(updatedLeaves);
             
             // Save to localStorage immediately
-            const updatedLeaves = [r, ...leaveRequests];
             localStorage.setItem('ls_leave_requests', JSON.stringify(updatedLeaves));
             localStorage.setItem('last_update', Date.now().toString());
             
@@ -495,8 +642,11 @@ const App: React.FC = () => {
               endDate: r.endDate,
               timestamp: new Date().toISOString()
             });
+            
+            console.log('✅ Leave request saved and broadcasted');
           }} 
           onAction={(id, s) => {
+            console.log('✅ Leave action:', id, s);
             const request = leaveRequests.find(r => r.id === id);
             const updatedLeaves = leaveRequests.map(r => r.id === id ? {...r, status: s} : r);
             setLeaveRequests(updatedLeaves);
@@ -516,6 +666,8 @@ const App: React.FC = () => {
                 timestamp: new Date().toISOString()
               });
             }
+            
+            console.log('✅ Leave action saved and broadcasted');
           }} 
         />;
       case 'reports':
@@ -527,7 +679,7 @@ const App: React.FC = () => {
         return <Employees 
           employees={employees} 
           onAdd={(e) => setEmployees([...employees, e])}
-          onUpdate={(e) => setEmployees(employees.map(p => p.id === e.id ? e : p))} 
+          onUpdate={handleEmployeeUpdate} 
           onDelete={(id) => confirm("Delete staff?") && setEmployees(employees.filter(e => e.id !== id))} 
         />;
       default:
