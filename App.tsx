@@ -472,9 +472,17 @@ const App: React.FC = () => {
 
   // State Mutators
   const onClockToggle = (empId: string) => {
+    console.log('🎯 App: onClockToggle called with empId:', empId);
+    console.log('🔍 App: Current state:', {
+      isProcessingClock,
+      attendanceCount: attendance.length,
+      employeesCount: employees.length,
+      currentUser: currentUser?.name
+    });
+    
     // Prevent double-click with stronger checks
     if (isProcessingClock) {
-      console.log('⚠️ Clock action already in progress, ignoring...');
+      console.log('⚠️ App: Clock action already in progress, ignoring...');
       return;
     }
     
@@ -482,33 +490,43 @@ const App: React.FC = () => {
     const lastClockAction = localStorage.getItem('last_clock_action');
     const now = Date.now();
     if (lastClockAction && (now - parseInt(lastClockAction)) < 5000) {
-      console.log('⚠️ Clock action too soon after last action, ignoring...');
+      console.log('⚠️ App: Clock action too soon after last action, ignoring...');
+      console.log('⏰ App: Time since last action:', now - parseInt(lastClockAction), 'ms');
       return;
     }
     
     setIsProcessingClock(true);
     localStorage.setItem('last_clock_action', now.toString());
-    console.log('🔒 Clock action started for employee:', empId);
+    console.log('🔒 App: Clock action started for employee:', empId);
     
     const today = new Date().toISOString().split('T')[0];
+    console.log('📅 App: Today date:', today);
+    
     const existing = attendance.find(a => a.employeeId === empId && a.date === today && !a.clockOut);
+    console.log('🔍 App: Existing attendance record:', existing);
+    console.log('📊 App: All attendance records for user:', attendance.filter(a => a.employeeId === empId));
 
     if (existing) {
       // Clock Out
-      console.log('🔴 Clocking out...');
+      console.log('🔴 App: Clocking out...');
       const clockOutTime = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+      console.log('🕐 App: Clock out time:', clockOutTime);
+      
       const updatedAttendance = attendance.map(a => 
         a.id === existing.id ? { ...a, clockOut: clockOutTime } : a
       );
+      console.log('📝 App: Updated attendance record:', updatedAttendance.find(a => a.id === existing.id));
       setAttendance(updatedAttendance);
       
       // Broadcast clock out event via ALL channels
       const employee = employees.find(e => e.id === empId);
       if (employee) {
+        console.log('👤 App: Found employee for broadcast:', employee.name);
         const clockInTime = new Date(`${today} ${existing.clockIn}`);
         const clockOutTimeObj = new Date();
         const duration = Math.round((clockOutTimeObj.getTime() - clockInTime.getTime()) / (1000 * 60));
         const durationStr = `${Math.floor(duration / 60)}h ${duration % 60}m`;
+        console.log('⏱️ App: Calculated duration:', durationStr);
         
         // Supabase (Primary - Most Reliable)
         supabaseService.triggerClockOut(empId, employee.name, clockOutTime, durationStr);
@@ -522,14 +540,16 @@ const App: React.FC = () => {
         // Force update localStorage with timestamp
         localStorage.setItem('ls_attendance', JSON.stringify(updatedAttendance));
         localStorage.setItem('last_update', Date.now().toString());
+        console.log('💾 App: Saved to localStorage');
       }
     } else {
       // Clock In
-      console.log('🟢 Clocking in...');
+      console.log('🟢 App: Clocking in...');
       const now = new Date();
       // Late if after 10:40 AM (10 hours 40 minutes)
       const isLate = now.getHours() > 10 || (now.getHours() === 10 && now.getMinutes() > 40);
       const clockInTime = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
+      console.log('🕐 App: Clock in time:', clockInTime, 'Late:', isLate);
       
       const newRecord: AttendanceRecord = {
         id: `ATT${Math.random().toString(36).substr(2, 9)}`,
@@ -538,12 +558,17 @@ const App: React.FC = () => {
         clockIn: clockInTime,
         status: isLate ? AttendanceStatus.LATE : AttendanceStatus.PRESENT
       };
+      console.log('📝 App: New attendance record:', newRecord);
+      
       const newAttendance = [newRecord, ...attendance];
       setAttendance(newAttendance);
+      console.log('📊 App: Total attendance records after add:', newAttendance.length);
       
       // Broadcast clock in event via ALL channels
       const employee = employees.find(e => e.id === empId);
       if (employee) {
+        console.log('👤 App: Found employee for broadcast:', employee.name);
+        
         // Supabase (Primary - Most Reliable)
         supabaseService.triggerClockIn(empId, employee.name, clockInTime, isLate);
         
@@ -556,13 +581,16 @@ const App: React.FC = () => {
         // Force update localStorage with timestamp
         localStorage.setItem('ls_attendance', JSON.stringify(newAttendance));
         localStorage.setItem('last_update', Date.now().toString());
+        console.log('💾 App: Saved to localStorage');
+      } else {
+        console.error('❌ App: Employee not found for empId:', empId);
       }
     }
     
     // Unlock after 5 seconds (increased from 3)
     setTimeout(() => {
       setIsProcessingClock(false);
-      console.log('🔓 Clock action unlocked');
+      console.log('🔓 App: Clock action unlocked');
     }, 5000);
   };
 
