@@ -33,15 +33,20 @@ const Dashboard: React.FC<DashboardProps> = ({ role, employees, attendance, leav
   const isClockedIn = !!userTodayAttendance;
   
   const handleClockToggle = () => {
-    if (isClockingIn) return; // Prevent double-click
+    if (isClockingIn) {
+      console.log('⚠️ Dashboard: Clock action already in progress, ignoring...');
+      return; // Prevent double-click
+    }
     
+    console.log('🔒 Dashboard: Starting clock toggle for user:', currentUser.name);
     setIsClockingIn(true);
     onClockToggle(currentUser.id);
     
-    // Re-enable after 2 seconds
+    // Re-enable after 5 seconds (longer than App.tsx timeout)
     setTimeout(() => {
       setIsClockingIn(false);
-    }, 2000);
+      console.log('🔓 Dashboard: Clock toggle re-enabled');
+    }, 5000);
   };
 
   const adminStats = [

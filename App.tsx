@@ -472,13 +472,22 @@ const App: React.FC = () => {
 
   // State Mutators
   const onClockToggle = (empId: string) => {
-    // Prevent double-click
+    // Prevent double-click with stronger checks
     if (isProcessingClock) {
       console.log('⚠️ Clock action already in progress, ignoring...');
       return;
     }
     
+    // Additional check for rapid clicks
+    const lastClockAction = localStorage.getItem('last_clock_action');
+    const now = Date.now();
+    if (lastClockAction && (now - parseInt(lastClockAction)) < 5000) {
+      console.log('⚠️ Clock action too soon after last action, ignoring...');
+      return;
+    }
+    
     setIsProcessingClock(true);
+    localStorage.setItem('last_clock_action', now.toString());
     console.log('🔒 Clock action started for employee:', empId);
     
     const today = new Date().toISOString().split('T')[0];
@@ -550,11 +559,11 @@ const App: React.FC = () => {
       }
     }
     
-    // Unlock after 3 seconds
+    // Unlock after 5 seconds (increased from 3)
     setTimeout(() => {
       setIsProcessingClock(false);
       console.log('🔓 Clock action unlocked');
-    }, 3000);
+    }, 5000);
   };
 
   // Employee update handler with real-time sync
