@@ -15,11 +15,9 @@ interface DashboardProps {
 const Dashboard: React.FC<DashboardProps> = ({ role, employees, attendance, leaves, currentUser, onClockToggle }) => {
   const isAdmin = role === UserRole.ADMIN;
   const today = new Date().toISOString().split('T')[0];
-  const [isClockingIn, setIsClockingIn] = React.useState(false);
-  
   // Real-time attendance calculation
   const todayAttendance = attendance.filter(a => a.date === today);
-  const presentToday = todayAttendance.filter(a => a.clockIn).length; // All who clocked in today
+  const presentToday = todayAttendance.filter(a => a.clockIn).length;
   const lateArrivals = todayAttendance.filter(a => a.status === AttendanceStatus.LATE).length;
   const onLeaveToday = leaves.filter(l => 
     l.status === 'APPROVED' && 
@@ -32,40 +30,7 @@ const Dashboard: React.FC<DashboardProps> = ({ role, employees, attendance, leav
   const isClockedIn = !!userTodayAttendance;
   
   const handleClockToggle = () => {
-    console.log('🎯 Dashboard: Clock toggle clicked');
-    console.log('🔍 Current state:', {
-      isClockingIn,
-      isClockedIn,
-      currentUser: currentUser.name,
-      userId: currentUser.id,
-      today,
-      userTodayAttendance
-    });
-    
-    if (isClockingIn) {
-      console.log('⚠️ Dashboard: Clock action already in progress, ignoring...');
-      return;
-    }
-    
-    console.log('🔒 Dashboard: Starting clock toggle for user:', currentUser.name);
-    console.log('📊 Attendance data:', attendance.filter(a => a.employeeId === currentUser.id));
-    
-    setIsClockingIn(true);
-    
-    // Call the parent function
-    try {
-      onClockToggle(currentUser.id);
-      console.log('✅ Dashboard: onClockToggle called successfully');
-    } catch (error) {
-      console.error('❌ Dashboard: Error calling onClockToggle:', error);
-      setIsClockingIn(false);
-    }
-    
-    // Re-enable after 5 seconds
-    setTimeout(() => {
-      setIsClockingIn(false);
-      console.log('🔓 Dashboard: Clock toggle re-enabled');
-    }, 5000);
+    onClockToggle(currentUser.id);
   };
 
   const adminStats = [
@@ -155,7 +120,7 @@ const Dashboard: React.FC<DashboardProps> = ({ role, employees, attendance, leav
 
       {!isAdmin && (
         <>
-          {/* Enhanced Clock In/Out Toggle for Employees */}
+          {/* Simple Clock In/Out Toggle for Employees */}
           <div className="bg-white rounded-3xl border border-gray-100 shadow-xl p-8 animate-slide-up">
             <div className="space-y-6">
               {/* Header */}
@@ -170,100 +135,42 @@ const Dashboard: React.FC<DashboardProps> = ({ role, employees, attendance, leav
                 </p>
               </div>
 
-              {/* Debug Info (for testing) */}
-              <div className="bg-gray-50 rounded-2xl p-4 text-xs font-mono">
-                <p><strong>🔍 Debug Info:</strong></p>
-                <p>User: {currentUser.name} (ID: {currentUser.id})</p>
-                <p>Date: {today}</p>
-                <p>Is Clocked In: {isClockedIn ? 'Yes' : 'No'}</p>
-                <p>Processing: {isClockingIn ? 'Yes' : 'No'}</p>
-                <p>Today's Record: {userTodayAttendance ? `${userTodayAttendance.clockIn} - ${userTodayAttendance.clockOut || 'Active'}` : 'None'}</p>
-                <p>Total Attendance Records: {attendance.filter(a => a.employeeId === currentUser.id).length}</p>
-              </div>
-
-              {/* Toggle Switch Style Clock In/Out */}
-              <div className="flex items-center justify-center space-x-6">
-                <div className="text-center">
-                  <p className="text-sm font-bold text-gray-600 mb-2">CLOCK OUT</p>
-                  <div className={`w-4 h-4 rounded-full ${isClockedIn ? 'bg-red-500' : 'bg-red-200'}`}></div>
-                </div>
-                
-                {/* Toggle Switch */}
+              {/* Single Toggle Switch */}
+              <div className="flex items-center justify-center">
                 <div 
                   onClick={handleClockToggle}
-                  className={`relative w-24 h-12 rounded-full cursor-pointer transition-all duration-300 shadow-lg ${
-                    isClockingIn 
-                      ? 'bg-gray-400 cursor-not-allowed' 
-                      : isClockedIn 
-                      ? 'bg-red-500 shadow-red-200' 
-                      : 'bg-green-500 shadow-green-200'
+                  className={`relative w-32 h-16 rounded-full transition-all duration-300 shadow-lg select-none cursor-pointer ${
+                    isClockedIn 
+                      ? 'bg-red-500 shadow-red-200 hover:bg-red-600' 
+                      : 'bg-green-500 shadow-green-200 hover:bg-green-600'
                   }`}
                 >
                   {/* Toggle Circle */}
-                  <div className={`absolute top-1 w-10 h-10 bg-white rounded-full shadow-md transition-all duration-300 flex items-center justify-center ${
-                    isClockedIn ? 'translate-x-12' : 'translate-x-1'
+                  <div className={`absolute top-2 w-12 h-12 bg-white rounded-full shadow-lg transition-all duration-300 flex items-center justify-center ${
+                    isClockedIn ? 'translate-x-16' : 'translate-x-2'
                   }`}>
-                    {isClockingIn ? (
-                      <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
-                    ) : (
-                      <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        {isClockedIn ? (
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
-                        ) : (
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
-                        )}
-                      </svg>
-                    )}
+                    <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      {isClockedIn ? (
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                      ) : (
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
+                      )}
+                    </svg>
                   </div>
                   
                   {/* Labels inside toggle */}
-                  <div className="absolute inset-0 flex items-center justify-between px-3 text-white text-xs font-bold">
+                  <div className="absolute inset-0 flex items-center justify-between px-4 text-white text-sm font-bold pointer-events-none">
                     <span className={`transition-opacity ${isClockedIn ? 'opacity-0' : 'opacity-100'}`}>IN</span>
                     <span className={`transition-opacity ${isClockedIn ? 'opacity-100' : 'opacity-0'}`}>OUT</span>
                   </div>
-                </div>
-                
-                <div className="text-center">
-                  <p className="text-sm font-bold text-gray-600 mb-2">CLOCK IN</p>
-                  <div className={`w-4 h-4 rounded-full ${!isClockedIn ? 'bg-green-500' : 'bg-green-200'}`}></div>
                 </div>
               </div>
 
               {/* Status Text */}
               <div className="text-center">
-                <p className={`text-lg font-bold ${
-                  isClockingIn 
-                    ? 'text-gray-500' 
-                    : isClockedIn 
-                    ? 'text-red-600' 
-                    : 'text-green-600'
-                }`}>
-                  {isClockingIn ? 'Processing...' : isClockedIn ? 'Currently Clocked In' : 'Ready to Clock In'}
+                <p className={`text-xl font-bold ${isClockedIn ? 'text-red-600' : 'text-green-600'}`}>
+                  {isClockedIn ? 'Currently Clocked In' : 'Ready to Clock In'}
                 </p>
-              </div>
-
-              {/* Alternative Button (Backup) */}
-              <div className="pt-4 border-t border-gray-100">
-                <button
-                  onClick={handleClockToggle}
-                  disabled={isClockingIn}
-                  className={`w-full px-8 py-4 rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-lg flex items-center justify-center gap-3 ${
-                    isClockingIn 
-                      ? 'bg-gray-400 cursor-not-allowed text-white' 
-                      : isClockedIn 
-                      ? 'bg-red-500 hover:bg-red-600 text-white shadow-red-100' 
-                      : 'bg-green-500 hover:bg-green-600 text-white shadow-green-100'
-                  }`}
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    {isClockedIn ? (
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
-                    ) : (
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013 3v1"/>
-                    )}
-                  </svg>
-                  {isClockingIn ? 'Processing...' : isClockedIn ? 'Clock Out (Button)' : 'Clock In (Button)'}
-                </button>
               </div>
             </div>
           </div>
