@@ -57,6 +57,20 @@ const App: React.FC = () => {
       localStorage.setItem('data_reset_feb_2026', 'true');
       console.log('✅ Data reset complete. Fresh start from February!');
     }
+    
+    // Clear any old debug cache - Version 4.0
+    const debugCacheCleared = localStorage.getItem('debug_cache_cleared_v4');
+    if (!debugCacheCleared) {
+      console.log('🧹 Clearing old debug cache...');
+      // Remove any old debug-related items
+      Object.keys(localStorage).forEach(key => {
+        if (key.includes('debug') || key.includes('Debug')) {
+          localStorage.removeItem(key);
+        }
+      });
+      localStorage.setItem('debug_cache_cleared_v4', 'true');
+      console.log('✅ Debug cache cleared!');
+    }
   }, []);
 
   useEffect(() => {
